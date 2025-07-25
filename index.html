@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TailwindCSS Online Editor</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/codemirror@5.65.8/lib/codemirror.css">
+    <link rel="stylesheet" href="https://unpkg.com/codemirror@5.65.8/theme/material.css">
+    <script src="https://unpkg.com/codemirror@5.65.8/lib/codemirror.js"></script>
+    <script src="https://unpkg.com/codemirror@5.65.8/mode/htmlmixed/htmlmixed.js"></script>
+    <script src="https://unpkg.com/codemirror@5.65.8/mode/xml/xml.js"></script>
+    <script src="https://unpkg.com/codemirror@5.65.8/mode/javascript/javascript.js"></script>
+    <script src="https://unpkg.com/codemirror@5.65.8/mode/css/css.js"></script>
+
+    <!-- code -->
+    <link rel="stylesheet" href="https://unpkg.com/codemirror@5.65.8/addon/hint/show-hint.css">
+    <script src="https://unpkg.com/codemirror@5.65.8/addon/hint/show-hint.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcssinjs/tailwindcss-data@0.17.0/lib/index.min.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'editor-dark': '#1e293b',
+                        'preview-bg': '#ffffff'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        html,
+        body,
+        #app {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-size: 15px;
+            line-height: 1.6;
+            padding: 16px 0;
+        }
+
+        .cm-tag {
+            color: #f92672 !important;
+        }
+
+        .cm-attribute {
+            color: #a6e22e !important;
+        }
+
+        .cm-string {
+            color: #fd971f !important;
+        }
+
+        .cm-comment {
+            color: #75715e !important;
+        }
+
+        .cm-keyword {
+            color: #66d9ef !important;
+        }
+
+        .cm-variable {
+            color: #f8f8f2 !important;
+        }
+
+        .cm-editor .cm-scroller {
+            overflow: auto;
+        }
+
+        .cm-gutters {
+            background-color: #0f172a !important;
+            border-right: 1px solid #1e293b !important;
+        }
+
+        .cm-activeLine {
+            background-color: #1e293b !important;
+        }
+
+        .cm-activeLineGutter {
+            background-color: #1e293b !important;
+        }
+
+        .cm-content {
+            padding-top: 16px !important;
+            padding-bottom: 16px !important;
+        }
+
+        .preview-container {
+            background-color: white;
+        }
+
+        .splitter {
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+
+        .gutter {
+            background-color: #334155;
+            background-repeat: no-repeat;
+            background-position: 50%;
+            cursor: col-resize;
+            width: 8px;
+            position: relative;
+            z-index: 10;
+            transition: background-color 0.2s;
+        }
+
+        .gutter:hover {
+            background-color: #4f6a96;
+        }
+
+        .gutter::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 2px;
+            width: 4px;
+            height: 40px;
+            background-color: #94a3b8;
+            border-radius: 2px;
+            transform: translateY(-50%);
+        }
+        .panel {
+            width: 100%;
+            overflow: auto;
+            position: relative;
+        }
+
+        /* Custom scrollbar */
+        .panel::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .panel::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .panel::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .panel::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-900">
+    <div id="app">
+        <!-- Navigation Bar -->
+        <nav class="bg-gradient-to-r from-blue-600 to-indigo-700 shadow-lg h-16 flex items-center px-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                    <i class="fas fa-code text-blue-600"></i>
+                </div>
+                <h1 class="text-white text-2xl font-bold">TailwindCSS Blogger</h1>
+            </div>
+            <div class="ml-auto flex items-center space-x-4">
+                <button
+                    class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-md transition-all flex items-center"
+                    @click="saveCode"
+                    >
+                    <i class="fas fa-save mr-2"></i> Save
+                </button>
+                <button
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center transition-all"
+                    @click="clearCode"
+                    >
+                    <i class="fas fa-plus mr-2"></i> New Project
+                </button>
+                <button
+                    class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-md flex items-center transition-all"
+                    @click="copyCode"
+                    >
+                    <i class="fas fa-copy mr-2"></i><span>{{copytext}}</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex flex-1 verflow-hidden" style="height: calc(100% - 4rem - 3rem);">
+            <!-- Editor Panel -->
+            <div class="panel h-full" ref="editorPanel" style="min-width: 300px;">
+                <div
+                    class="bg-slate-800 text-white px-4 py-3 flex items-center justify-between border-b border-slate-700">
+                    <h2 class="font-medium flex items-center">
+                        <i class="fas fa-code mr-2 text-blue-400"></i>
+                        <span class="text-slate-300">TailwindCSS</span> Editor
+                    </h2>
+                    <div class="flex space-x-2">
+                        <button @click="formatCode"
+                            class="bg-slate-700 hover:bg-slate-600 rounded-md px-3 py-1 text-sm transition-colors flex items-center">
+                            <i class="fas fa-align-left mr-1"></i> Format
+                        </button>
+                        <button @click="resetCode"
+                            class="bg-slate-700 hover:bg-slate-600 rounded-md px-3 py-1 text-sm transition-colors flex items-center">
+                            <i class="fas fa-redo mr-1"></i> Reset Exp Code
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-hidden">
+                    <div ref="editor" class="h-full bg-editor-dark"></div>
+                </div>
+            </div>
+
+            <div class="gutter" ref="gutter"></div>
+
+            <!-- Preview Panel -->
+            <div class="panel h-full" ref="previewPanel" style="min-width: 300px;">
+                <div
+                    class="bg-slate-800 text-white px-4 py-3 flex items-center justify-between border-b border-slate-700">
+                    <h2 class="font-medium flex items-center">
+                        <i class="fas fa-eye mr-2 text-green-400"></i>
+                        Live Preview
+                    </h2>
+                    <div class="flex items-center text-sm text-slate-400">
+                        <span class="flex h-2 w-2 mr-2">
+                            <span class="animate-ping absolute h-2 w-2 rounded-full bg-green-400 opacity-75"></span>
+                            <span class="relative h-2 w-2 rounded-full bg-green-500"></span>
+                        </span>
+                        Real-time updates
+                    </div>
+                </div>
+                <div class="flex-1 overflow-auto preview-container">
+                    <div v-html="renderedContent" class="p-6 min-h-full"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-gray-200 h-12 flex items-center justify-center">
+            <p class="text-gray-600 text-sm">
+                &copy; 2023 TailwindCSS Blogger - Online Editor. All rights reserved.
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, watch } = Vue
+
+        const defaultCode = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>TailwindCSS Demo</title>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 to-blue-100 min-h-screen p-6">
+  <div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <header class="text-center py-12">
+      <h1 class="text-4xl md:text-5xl font-bold text-slate-800 mb-4">
+        Welcome to <span class="text-blue-600">TailwindCSS Blogger</span>
+      </h1>
+      <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+        The ultimate online editor for creating beautiful designs with TailwindCSS
+      </p>
+    </header>
+    
+    <!-- Stats Section -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+      <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+        <div class="text-blue-500 text-3xl mb-3">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-slate-800 mb-2">Fast Development</h3>
+        <p class="text-slate-600">
+          Rapidly build modern websites without ever leaving your HTML.
+        </p>
+      </div>
+      
+      <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+        <div class="text-green-500 text-3xl mb-3">
+          <i class="fas fa-cogs"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-slate-800 mb-2">Fully Customizable</h3>
+        <p class="text-slate-600">
+          Tailwind is designed to be customized to your project's needs.
+        </p>
+      </div>
+      
+      <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+        <div class="text-purple-500 text-3xl mb-3">
+          <i class="fas fa-mobile-alt"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-slate-800 mb-2">Responsive</h3>
+        <p class="text-slate-600">
+          Build responsive designs with Tailwind's mobile-first approach.
+        </p>
+      </div>
+    </div>
+    
+    <!-- Editor Demo -->
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-16">
+      <div class="md:flex">
+        <div class="md:w-1/2 bg-slate-800 p-6">
+          <h3 class="text-slate-200 font-medium mb-4">Try it yourself:</h3>
+          <div class="bg-slate-900 rounded-lg overflow-hidden">
+            <pre class="text-green-400 p-4 text-sm overflow-auto max-h-64">
+&lt;div class="p-6 max-w-sm mx-auto"&gt;
+  &lt;div class="flex items-center space-x-4 mb-6"&gt;
+    &lt;div class="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16"&gt;&lt;/div&gt;
+    &lt;div&gt;
+      &lt;h4 class="text-white font-bold text-lg"&gt;John Doe&lt;/h4&gt;
+      &lt;p class="text-slate-400"&gt;Web Developer&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  
+  &lt;p class="text-slate-300 mb-6"&gt;
+    Creating beautiful designs with TailwindCSS is a breeze. 
+    Try it yourself in this online editor!
+  &lt;/p&gt;
+  
+  &lt;button class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition"&gt;
+    View Profile
+  &lt;/button&gt;
+&lt;/div&gt;</pre>
+          </div>
+        </div>
+        
+        <div class="md:w-1/2 p-8">
+          <div class="flex items-center space-x-4 mb-6">
+            <div class="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16"></div>
+            <div>
+              <h4 class="text-slate-800 font-bold text-lg">John Doe</h4>
+              <p class="text-slate-500">Web Developer</p>
+            </div>
+          </div>
+          
+          <p class="text-slate-600 mb-6">
+            Creating beautiful designs with TailwindCSS is a breeze. 
+            Try it yourself in this online editor!
+          </p>
+          
+          <button class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition">
+            View Profile
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="text-center py-8 text-slate-500">
+      <p>Edit the code on the left panel and see changes in real-time</p>
+    </footer>
+  </div>
+</body>
+</html>`
+
+        createApp({
+            setup() {
+                const editor = ref(null)
+                const code = ref(defaultCode)
+                const renderedContent = ref('')
+                let codeMirror = null
+                let copytext = ref('Copy')
+
+                const editorPanel = ref(null)
+                const previewPanel = ref(null)
+                const gutter = ref(null)
+
+                // Initialize CodeMirror
+                onMounted(() => {
+                    codeMirror = CodeMirror(editor.value, {
+                        value: code.value,
+                        mode: "htmlmixed",
+                        theme: "material",
+                        lineNumbers: true,
+                        lineWrapping: true,
+                        autofocus: true,
+                        indentUnit: 2,
+                        tabSize: 2,
+                        extraKeys: {
+                            "Tab": "indentMore",
+                            "Shift-Tab": "indentLess",
+                            "Ctrl-Space": "autocomplete" // handle autocomplete
+                        },
+                        hintOptions: {
+                            completeSingle: false,
+                            hint: function (cm) {
+                                const cursor = cm.getCursor();
+                                const token = cm.getTokenAt(cursor);
+                                const line = cm.getLine(cursor.line);
+                                const start = token.start;
+                                const end = cursor.ch;
+
+                                // check class name
+                                const classMatch = line.substring(0, end).match(/class(?:Name)?=["']([^"']*)$/);
+                                if (!classMatch) return null;
+
+                                const prefix = classMatch[1].split(/\s+/).pop();
+                                if (!prefix) return null;
+
+                                const list = tailwindcssData.classNames.filter(c => c.startsWith(prefix));
+                                return {
+                                    list,
+                                    from: { line: cursor.line, ch: start - prefix.length },
+                                    to: cursor
+                                };
+                            }
+                        }
+                    });
+
+                    // listener
+                    codeMirror.on("inputRead", function (cm, change) {
+                        if (change.text[0] === " " || change.text[0] === '"' || change.text[0] === "'") return;
+                        const cursor = cm.getCursor();
+                        const token = cm.getTokenAt(cursor);
+                        if (token.type === "string" && /class(?:Name)?=["']/.test(cm.getLine(cursor.line))) {
+                            cm.showHint();
+                        }
+                    });
+
+                    codeMirror.on('change', (cm) => {
+                        code.value = cm.getValue();
+                    });
+
+                    renderedContent.value = code.value;
+
+                    // Setup splitter
+                    setupSplitter()
+                })
+
+                // Setup splitter functionality
+                const setupSplitter = () => {
+                    let isDragging = false
+                    let startX = 0
+                    let startEditorWidth = 0
+                    let startPreviewWidth = 0
+
+                    // Mouse down event on gutter
+                    gutter.value.addEventListener('mousedown', (e) => {
+                        isDragging = true
+                        startX = e.clientX
+                        startEditorWidth = editorPanel.value.offsetWidth
+                        startPreviewWidth = previewPanel.value.offsetWidth
+
+                        // Add styles during dragging
+                        document.body.style.cursor = 'col-resize'
+                        document.body.style.userSelect = 'none'
+                        gutter.value.style.backgroundColor = '#4f6a96'
+                    })
+
+                    // Mouse move event
+                    document.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return
+
+                        const dx = e.clientX - startX
+                        const newEditorWidth = startEditorWidth + dx
+                        const newPreviewWidth = startPreviewWidth - dx
+
+                        // Set minimum widths
+                        if (newEditorWidth < 300 || newPreviewWidth < 300) return
+
+                        editorPanel.value.style.width = `${newEditorWidth}px`
+                        previewPanel.value.style.width = `${newPreviewWidth}px`
+                    })
+
+                    // Mouse up event
+                    document.addEventListener('mouseup', () => {
+                        if (!isDragging) return
+
+                        isDragging = false
+                        document.body.style.cursor = ''
+                        document.body.style.userSelect = ''
+                        gutter.value.style.backgroundColor = '#334155'
+                    })
+                }
+
+                // Update preview when code changes
+                watch(code, (newVal) => {
+                    renderedContent.value = newVal
+                })
+
+                // Format HTML code
+                const formatCode = () => {
+                    // This would normally be done with a formatter library
+                    // For this demo, we'll just show an alert
+                    alert('Code formatting functionality would be implemented with a proper formatter library in a production environment.')
+                }
+
+                // clear CodeMirror
+                const clearCode = () => {
+                    if (confirm('Are you sure you want to clear the code?')) {
+                        code.value = ''
+                        codeMirror.setValue('')
+                    }
+                }
+
+                // Reset to default code
+                const resetCode = () => {
+                    if (confirm('Are you sure you want to reset the code? All changes will be lost.')) {
+                        code.value = defaultCode
+                        codeMirror.setValue(defaultCode)
+                    }
+                }
+
+                // Save code to html file
+                const saveCode = () => {
+                    const blob = new Blob([code.value], { type: 'text/html' })
+                    const url = URL.createObjectURL(blob)
+                    const link = document.createElement('a')
+                    link.href = url
+                    link.download = 'index.html'
+                    link.click()
+                }
+
+                // copy code to clipboard
+                const copyCode = () => {
+                    navigator.clipboard.writeText(code.value)
+                    // change copytext value and refresh it
+                    copytext.value = 'Copied!'
+                    setTimeout(() => {
+                        copytext.value = 'Copy'
+                    }, 2000)
+                }
+
+                return {
+                    editorPanel,
+                    previewPanel,
+                    gutter,
+                    copytext,
+                    editor,
+                    code,
+                    renderedContent,
+                    formatCode,
+                    resetCode,
+                    clearCode,
+                    saveCode,
+                    copyCode
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+
+</html>
+
+    <!-- Input Content Area -->
+    <div id="contentDiv" class="border border-slate-300 rounded-lg p-4 bg-white min-h-[150px] mb-4"></div>
+
+    <!-- Clear Button -->
+    <button id="clearButton" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
+      Clear Content
+    </button>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 h-12 flex items-center justify-center mt-8">
+        <p class="text-gray-600 text-sm">
+            &copy; 2025 TailwindCSS Blogger - Online Editor. All rights reserved.
+        </p>
+    </footer>
+</div>
+
+<script>
+    // Clear content when button is clicked
+    document.getElementById('clearButton').addEventListener('click', function() {
+        document.getElementById('contentDiv').innerHTML = '';
+    });
+</script>
+
+</body>
+</html>
